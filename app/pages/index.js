@@ -5,6 +5,10 @@ import TodoSection from '../components/todo/TodoSection'
 import styles from '../styles/Home.module.css'
 
 
+// solana connection
+// import { Connection, clusterApiUrl } from '@solana/web3.js'
+// const connection = new Connection(clusterApiUrl("devnet"))
+
 const Home = () => {
     const { initialized, initializeStaticUser, loading, transactionPending, completedTodos, incompleteTodos, addTodo, markTodo, removeTodo, markStaticTodo,removeStaticTodo, addStaticTodo, input,  handleChange } = useTodo()
 
@@ -26,7 +30,7 @@ const Home = () => {
                     </div>
                 ) : (
                     <button type="button" className={styles.button} onClick={() => initializeStaticUser()} disabled={transactionPending}>
-                        Initialize
+                        Initialize!
                     </button>
                 )}
                 {/* <WalletMultiButton /> */}
