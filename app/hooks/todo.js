@@ -60,6 +60,7 @@ let dummyTodos = [
 
 export function useTodo() {
     const { connection } = useConnection()
+    const wallet = useWallet()
     const { publicKey } = useWallet()
     const anchorWallet = useAnchorWallet()
 
@@ -94,7 +95,7 @@ export function useTodo() {
                         setLastTodo(profileAccount.lastTodo)
                         setInitialized(true)
 
-                        const todoAccounts = await program.account.todoAccounts.all([authorFilter(publicKey.toString())])
+                        const todoAccounts = await program.account.todoAccount.all([authorFilter(publicKey.toString())])
                         setTodos(todoAccounts)
                     } else {
                         console.log("NOT YET INTIALIZE")
@@ -136,7 +137,7 @@ export function useTodo() {
                 .accounts({
                     userProfile: profilePda,
                     authority: publicKey,
-                    SystemProgram: SystemProgram.programId
+                    systemProgram: SystemProgram.programId
                 }).rpc()
 
                 setInitialized(true)
@@ -154,6 +155,35 @@ export function useTodo() {
         setInitialized(true)
     }
 
+    const addTodo = async (e) => {
+        try {
+            e.preventDefault()
+            setTransactionPending(true)
+            const [profilePda, profileBump] = findProgramAddressSync([utf8.encode('USER_STATE'), publicKey.toBuffer()],program.programId)
+            const [todoPda, todoBump] = findProgramAddressSync([utf8.encode('TODO_STATE'), publicKey.toBuffer(), Uint8Array.from([lastTodo])], program.programId)
+        
+            if (input) {
+                await program.methods
+                .addTod(input)
+                .accounts({
+                    userProfile: profilePda,
+                    todoAccount: todoPda,
+                    authority: publicKey,
+                    systemProgram: SystemProgram.programId
+                }).rpc()
+
+                toast.success("Successfully added todo")
+
+            }
+        } catch (e) {
+            console.log(e)
+            toast.error(e.toString())
+        } finally {
+            setTransactionPending(false)
+            setInput("")
+        }
+    }
+
     const addStaticTodo = (e) => {
         e.preventDefault()
         if(input) {
@@ -166,6 +196,35 @@ export function useTodo() {
             }
             setTodos([newTodo,...todos])
             setInput("")
+        }
+    }
+
+    const markTodo = async (todoPda, todoIdx) => {
+        if (program && publicKey) {
+            try {
+                setTransactionPending(true)
+                setLoading(true)
+
+                const [profilePda, profileBump] = findProgramAddressSync([utf8.encode("USER_STATE"), publicKey.toBuffer()], program.programId)
+
+                await program.methods
+                .markTodo(todoIdx)
+                .accounts({
+                    userProfile: profilePda,
+                    todoAccount: todoPda,
+                    authority: publicKey,
+                    systemProgram: SystemProgram.programId
+                }).rpc()
+
+                toast.success("Todo mark successfully")
+
+            } catch (error) {
+                console.log(error)
+                toast.error(error.toString())
+            } finally {
+                setTransactionPending(false)
+                setLoading(false)
+            }
         }
     }
 
@@ -189,6 +248,34 @@ export function useTodo() {
         )
     }
 
+    const removeTodo = async (todoPda, todoIdx) => {
+        if (program && publicKey) {
+            try {
+                setTransactionPending(true)
+                setLoading(true)
+                const [profilePda, profileBump]  = findProgramAddressSync([utf8.encode("USER_STATE"), publicKey.toBuffer()], program.programId)
+
+                await program.methods
+                .removeTodo(todoIdx)
+                .accounts({
+                    authority: publicKey,
+                    userProfile: profilePda,
+                    todoAccount: todoPda,
+                    systemProgram: SystemProgram.programId
+                }).rpc()
+
+                toast.success("Successfully todo deleted")
+
+            } catch (error) {
+                console.log(error)
+                toast.error(error.toString())
+            } finally {
+                setTransactionPending(false)
+                setLoading(false)
+            }
+        }
+    }
+
     const removeStaticTodo = async (todoID) => {
         setTodos(
             todos.filter(todo => {
@@ -205,6 +292,6 @@ export function useTodo() {
     const incompleteTodos = useMemo(() => todos.filter((todo) => !todo.account.marked), [todos])
     const completedTodos = useMemo(() => todos.filter((todo) => todo.account.marked), [todos])
 
-    return { initialized, initializeStaticUser, loading, transactionPending, completedTodos, incompleteTodos, markStaticTodo, removeStaticTodo, addStaticTodo, input, setInput, handleChange , initializeUser}
+    return { initialized, initializeStaticUser, loading, transactionPending, completedTodos, incompleteTodos, markStaticTodo, removeStaticTodo, addStaticTodo, input, setInput, handleChange, initializeUser, addTodo, markTodo, removeTodo }
 }
  
